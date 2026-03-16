@@ -7,7 +7,7 @@ Reliable kitten feed and pet reminders for RuneLite.
 Older kitten timers can drift or break after client updates. This plugin uses confirmed game signals and the live follower state instead of assuming care timers across sessions:
 
 - Starts feed and attention tracking only after a confirmed care action or a real warning message.
-- Resets to unknown on logout, hop, or when your follower is no longer out.
+- Carries confirmed feed and attention state across world hops, but resets on logout or when your follower is no longer out.
 - Uses the actual OSRS kitten windows:
 	- Hunger at 24 minutes, then very hungry after 3 more, then runaway after another 3.
 	- Attention warning after 25 minutes by default, 18 minutes after one stroke, 25 minutes after repeated strokes, and 51 minutes after wool play.

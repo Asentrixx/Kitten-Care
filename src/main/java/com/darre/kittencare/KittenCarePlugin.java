@@ -40,6 +40,7 @@ public class KittenCarePlugin extends Plugin
 {
 	private static final Duration ACTION_CONFIRM_WINDOW = Duration.ofSeconds(8);
 	private static final int OVERHEAD_ALERT_CYCLES = 100;
+	private static final int WORLD_HOP_GRACE_TICKS = 10;
 	private static final Duration GAME_TICK_DURATION = Duration.ofMillis(600);
 	private static final Duration FEED_SATISFIED_DURATION = Duration.ofMinutes(24);
 	private static final Duration FEED_WARNING_WINDOW = Duration.ofMinutes(3);
@@ -189,6 +190,7 @@ public class KittenCarePlugin extends Plugin
 	private Duration guessedAge;
 	private Duration guessedAdultEta;
 	private int trackedGrowthTicks;
+	private int worldHopGraceTicks;
 
 	private boolean hasKitten;
 
@@ -211,10 +213,19 @@ public class KittenCarePlugin extends Plugin
 	public void onGameStateChanged(GameStateChanged event)
 	{
 		GameState gameState = event.getGameState();
-		if (gameState == GameState.LOGIN_SCREEN || gameState == GameState.HOPPING)
+		if (gameState == GameState.HOPPING)
+		{
+			worldHopGraceTicks = WORLD_HOP_GRACE_TICKS;
+			hasKitten = false;
+			clearPendingInteractionState();
+			return;
+		}
+
+		if (gameState == GameState.LOGIN_SCREEN)
 		{
 			clearTrackedState();
 			hasKitten = false;
+			worldHopGraceTicks = 0;
 			return;
 		}
 	}
@@ -331,12 +342,22 @@ public class KittenCarePlugin extends Plugin
 			return;
 		}
 
+		if (worldHopGraceTicks > 0)
+		{
+			worldHopGraceTicks--;
+		}
+
 		updateHasKitten();
 		if (!hasKitten)
 		{
-			clearRuntimeReminderState();
+			if (worldHopGraceTicks == 0)
+			{
+				clearRuntimeReminderState();
+			}
 			return;
 		}
+
+		worldHopGraceTicks = 0;
 
 		if (guessedAge != null)
 		{
@@ -581,6 +602,15 @@ public class KittenCarePlugin extends Plugin
 
 		boolean oldHasKitten = hasKitten;
 		hasKitten = isKittenFollower();
+		if (hasKitten)
+		{
+			return;
+		}
+
+		if (worldHopGraceTicks > 0)
+		{
+			return;
+		}
 
 		if (oldHasKitten && !hasKitten)
 		{
@@ -723,13 +753,18 @@ public class KittenCarePlugin extends Plugin
 		return false;
 	}
 
+	private void clearPendingInteractionState()
+	{
+		pendingFeedInteractionAt = null;
+		pendingPetInteractionAt = null;
+		pendingAttentionAction = PendingAttentionAction.NONE;
+	}
+
 	private void clearRuntimeReminderState()
 	{
 		nextFeedReminderAt = null;
 		nextPetReminderAt = null;
-		pendingFeedInteractionAt = null;
-		pendingPetInteractionAt = null;
-		pendingAttentionAction = PendingAttentionAction.NONE;
+		clearPendingInteractionState();
 	}
 
 	private void clearTrackedState()
